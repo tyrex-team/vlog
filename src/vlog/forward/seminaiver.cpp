@@ -373,13 +373,13 @@ bool SemiNaiver::executeUntilSaturation(
                 iteration,
                 NULL);
         newDer |= response;
-	if (timeout != NULL && *timeout != 0) {
-	    std::chrono::duration<double> s = std::chrono::system_clock::now() - startTime;
-	    if (s.count() > *timeout) {
-		*timeout = 0;	// To indicate materialization was stopped because of timeout.
-		return newDer;
-	    }
-	}
+        if (timeout != NULL && *timeout != 0) {
+            std::chrono::duration<double> s = std::chrono::system_clock::now() - startTime;
+            if (s.count() > *timeout) {
+                *timeout = 0;   // To indicate materialization was stopped because of timeout.
+                return newDer;
+            }
+        }
         std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
         StatIteration stat;
         stat.iteration = iteration;
@@ -389,13 +389,13 @@ bool SemiNaiver::executeUntilSaturation(
         costRules.push_back(stat);
         ruleset[currentRule].lastExecution = iteration++;
 
-	if (timeout != NULL && *timeout != 0) {
-	    std::chrono::duration<double> s = std::chrono::system_clock::now() - startTime;
-	    if (s.count() > *timeout) {
-		*timeout = 0;	// To indicate materialization was stopped because of timeout.
-		return newDer;
-	    }
-	}
+        if (timeout != NULL && *timeout != 0) {
+            std::chrono::duration<double> s = std::chrono::system_clock::now() - startTime;
+            if (s.count() > *timeout) {
+                *timeout = 0;   // To indicate materialization was stopped because of timeout.
+                return newDer;
+            }
+        }
 
         if (response) {
             if (ruleset[currentRule].rule.isRecursive()) {
@@ -417,13 +417,13 @@ bool SemiNaiver::executeUntilSaturation(
                     stat.time = sec.count() * 1000;
                     stat.derived = response;
                     costRules.push_back(stat);
-		    if (timeout != NULL && *timeout != 0) {
-			std::chrono::duration<double> s = std::chrono::system_clock::now() - startTime;
-			if (s.count() > *timeout) {
-			    *timeout = 0;	// To indicate materialization was stopped because of timeout.
-			    return newDer;
-			}
-		    }
+                    if (timeout != NULL && *timeout != 0) {
+                        std::chrono::duration<double> s = std::chrono::system_clock::now() - startTime;
+                        if (s.count() > *timeout) {
+                            *timeout = 0;   // To indicate materialization was stopped because of timeout.
+                            return newDer;
+                        }
+                    }
                 } while (response);
                     LOG(DEBUGL) << "Rules " <<
                         ruleset[currentRule].rule.tostring(program, &layer) <<
@@ -470,7 +470,7 @@ bool SemiNaiver::executeUntilSaturation(
                 break;
         }
     } while (rulesWithoutDerivation != ruleset.size());
-    return newDer;
+                    return newDer;
 }
 
 void SemiNaiver::storeOnFile(std::string path, const PredId_t pred, const bool decompress, const int minLevel, const bool csv) {
@@ -1335,7 +1335,7 @@ FCIterator SemiNaiver::getTable(const Literal & literal,
 
 FCIterator SemiNaiver::getTable(const PredId_t predid) {
     if (predicatesTables[predid] == NULL) {
-	return FCIterator();
+        return FCIterator();
     }
     return predicatesTables[predid]->read(0);
 }
