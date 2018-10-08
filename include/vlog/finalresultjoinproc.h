@@ -94,28 +94,28 @@ class SingleHeadFinalRuleProcessor: public ResultJoinProcessor {
             return t;
         }
 
-        void addColumns(const int blockid,
+        virtual void addColumns(const int blockid,
                 std::vector<std::shared_ptr<Column>> &columns,
                 const bool unique, const bool sorted);
 
-        void addColumn(const int blockid, const uint8_t pos,
+        virtual void addColumn(const int blockid, const uint8_t pos,
                 std::shared_ptr<Column> column, const bool unique,
                 const bool sorted);
 
-        void addColumns(const int blockid, FCInternalTableItr *itr,
+        virtual void addColumns(const int blockid, FCInternalTableItr *itr,
                 const bool unique, const bool sorted,
                 const bool lastInsert);
 
         bool isEmpty() const;
+
+        virtual void processResults(const int blockid, const bool unique,
+                std::mutex *m);
 
         void processResults(std::vector<int> &blockid, Term_t *p,
                 std::vector<bool> &unique, std::mutex *m);
 
         void processResults(const int blockid, const Term_t *first,
                 FCInternalTableItr* second, const bool unique);
-
-        void processResults(const int blockid, const bool unique,
-                std::mutex *m);
 
         void processResults(const int blockid,
                 const std::vector<const std::vector<Term_t> *> &vectors1, size_t i1,
@@ -125,7 +125,7 @@ class SingleHeadFinalRuleProcessor: public ResultJoinProcessor {
         void processResults(const int blockid, FCInternalTableItr *first,
                 FCInternalTableItr* second, const bool unique);
 
-        void processResultsAtPos(const int blockid, const uint8_t pos,
+        virtual void processResultsAtPos(const int blockid, const uint8_t pos,
                 const Term_t v, const bool unique);
 
         bool containsUnfilteredDerivation() const {
@@ -159,6 +159,42 @@ class SingleHeadFinalRuleProcessor: public ResultJoinProcessor {
         std::vector<std::shared_ptr<const Segment>> getAllSegments();
 
         ~SingleHeadFinalRuleProcessor();
+};
+
+class EqualityFinalRuleProcessor: public SingleHeadFinalRuleProcessor {
+    public:
+        EqualityFinalRuleProcessor(
+                std::vector<std::pair<uint8_t, uint8_t>> &posFromFirst,
+                std::vector<std::pair<uint8_t, uint8_t>> &posFromSecond,
+                std::vector<FCBlock> &listDerivations,
+                FCTable *t,
+                Literal &head, const uint8_t posHeadInRule,
+                const RuleExecutionDetails *detailsRule,
+                const uint8_t ruleExecOrder,
+                const size_t iteration,
+                const bool addToEndTable,
+                const int nthreads) :
+            SingleHeadFinalRuleProcessor(posFromFirst, posFromSecond,
+                    listDerivations, t, head, posHeadInRule, detailsRule,
+                    ruleExecOrder, iteration, addToEndTable, nthreads) {}
+
+        void processResults(const int blockid, const bool unique,
+                std::mutex *m);
+
+        void processResultsAtPos(const int blockid, const uint8_t pos,
+                const Term_t v, const bool unique);
+
+        void addColumns(const int blockid,
+                std::vector<std::shared_ptr<Column>> &columns,
+                const bool unique, const bool sorted);
+
+        void addColumn(const int blockid, const uint8_t pos,
+                std::shared_ptr<Column> column, const bool unique,
+                const bool sorted);
+
+        void addColumns(const int blockid, FCInternalTableItr *itr,
+                const bool unique, const bool sorted,
+                const bool lastInsert);
 };
 
 class SemiNaiver;

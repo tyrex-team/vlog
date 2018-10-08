@@ -80,7 +80,7 @@ class SemiNaiverThreaded: public SemiNaiver {
                 const int nthreads,
                 const int interRuleThreads) : SemiNaiver(ruleset, layer,
                     program, opt_intersect, opt_filtering, true,
-                    nthreads, shuffleRules),
+                    nthreads, shuffleRules, false, ""), //Disable equality reasoning
                 interRuleThreads(interRuleThreads) {
 
                     // Marks for parallel version

@@ -593,7 +593,8 @@ TupleIterator *Reasoner::getMagicIterator(Literal &query,
 #endif
 
     SemiNaiver *naiver = new SemiNaiver(magicProgram->getAllRules(),
-            edb, magicProgram.get(), true, true, false, -1, false) ;
+            edb, magicProgram.get(), true, true, false, -1, false,
+            false, "") ;
 
     //Add all the input tuples in the input relation
     Predicate pred = magicProgram->getPredicate(inputOutputRelIDs.first);
@@ -639,14 +640,14 @@ TupleIterator *Reasoner::getMagicIterator(Literal &query,
         if (returnOnlyVars) {
             while (itrTable->hasNext()) {
                 itrTable->next();
-		if (finalTable->getSizeRow() == 0) {
-		    Term_t row = 0;
-		    finalTable->addRow(&row);
-		} else {
-		    for (uint8_t j = 0; j < posVars.size(); ++j) {
-			finalTable->addValue(itrTable->getCurrentValue(j));
-		    }
-		}
+                if (finalTable->getSizeRow() == 0) {
+                    Term_t row = 0;
+                    finalTable->addRow(&row);
+                } else {
+                    for (uint8_t j = 0; j < posVars.size(); ++j) {
+                        finalTable->addValue(itrTable->getCurrentValue(j));
+                    }
+                }
                 // Not sure about this. Was:
                 // for (uint8_t j = 0; j < rowsize; ++j) {
                 //     finalTable->addValue(itrTable->getCurrentValue(j));
@@ -703,7 +704,8 @@ TupleIterator *Reasoner::getMaterializationIterator(Literal &query,
     // Run materialization
     SemiNaiver *sn = new SemiNaiver(program.getAllRules(),
             edb, &program, true, true,
-            false, -1, false);
+            false, -1, false,
+            false, "");
 
     sn->run();
 
@@ -713,7 +715,7 @@ TupleIterator *Reasoner::getMaterializationIterator(Literal &query,
 }
 
 TupleIterator *Reasoner::getIteratorWithMaterialization(SemiNaiver *sn, Literal &query, bool returnOnlyVars,
-	std::vector<uint8_t> *sortByFields) {
+        std::vector<uint8_t> *sortByFields) {
 
     FCIterator tableIt = sn->getTable(query.getPredicate().getId());
     VTuple tuple = query.getTuple();
@@ -741,27 +743,27 @@ TupleIterator *Reasoner::getIteratorWithMaterialization(SemiNaiver *sn, Literal 
                     }
                 }
             }
-	    if (copy) {
-		for (uint8_t i = 0; i < repeated.size(); ++i) {
-		    if (itrTable->getCurrentValue(repeated[i].first) != itrTable->getCurrentValue(repeated[i].second)) {
-			copy = false;
-			break;
-		    }
-		}
-	    }
+            if (copy) {
+                for (uint8_t i = 0; i < repeated.size(); ++i) {
+                    if (itrTable->getCurrentValue(repeated[i].first) != itrTable->getCurrentValue(repeated[i].second)) {
+                        copy = false;
+                        break;
+                    }
+                }
+            }
             if (! copy) {
                 continue;
             }
-	    if (finalTable->getSizeRow() == 0) {
-		Term_t row = 0;
-		finalTable->addRow(&row);
-	    } else {
-		for (int i = 0; i < tuple.getSize(); i++) {
-		    if (! returnOnlyVars || tuple.get(i).isVariable()) {
-			finalTable->addValue(itrTable->getCurrentValue(i));
-		    }
-		}
-	    }
+            if (finalTable->getSizeRow() == 0) {
+                Term_t row = 0;
+                finalTable->addRow(&row);
+            } else {
+                for (int i = 0; i < tuple.getSize(); i++) {
+                    if (! returnOnlyVars || tuple.get(i).isVariable()) {
+                        finalTable->addValue(itrTable->getCurrentValue(i));
+                    }
+                }
+            }
         }
         table->releaseIterator(itrTable);
         tableIt.moveNextCount();
@@ -918,7 +920,8 @@ TupleIterator *Reasoner::getTopDownIterator(Literal &query,
 std::shared_ptr<SemiNaiver> Reasoner::getSemiNaiver(EDBLayer &layer,
         Program *p, bool opt_intersect, bool opt_filtering, bool opt_threaded,
         bool restrictedChase,
-        int nthreads, int interRuleThreads, bool shuffleRules) {
+        int nthreads, int interRuleThreads, bool shuffleRules,
+        bool enableEqualityReasoning, std::string equalityPredicate) {
     LOG(DEBUGL) << "interRuleThreads = " << interRuleThreads << ", shuffleRules = " << shuffleRules;
     if (interRuleThreads > 0) {
         std::shared_ptr<SemiNaiver> sn(new SemiNaiverThreaded(p->getAllRules(),
@@ -928,19 +931,22 @@ std::shared_ptr<SemiNaiver> Reasoner::getSemiNaiver(EDBLayer &layer,
     } else {
         std::shared_ptr<SemiNaiver> sn(new SemiNaiver(p->getAllRules(),
                     layer, p, opt_intersect, opt_filtering,
-                    opt_threaded, restrictedChase, nthreads, shuffleRules));
+                    opt_threaded, restrictedChase, nthreads, shuffleRules,
+                    enableEqualityReasoning, equalityPredicate));
         return sn;
     }
 }
 
 std::shared_ptr<SemiNaiver> Reasoner::fullMaterialization(EDBLayer &layer,
         Program *p, bool opt_intersect, bool opt_filtering, bool opt_threaded,
-        bool restrictedChase, int nthreads, int interRuleThreads, bool shuffleRules) {
+        bool restrictedChase, int nthreads, int interRuleThreads, bool shuffleRules,
+        bool enableEqualityReasoning, std::string eqPredicate) {
     LOG(INFOL) << "Starting full materialization";
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     std::shared_ptr<SemiNaiver> sn = getSemiNaiver(layer,
             p, opt_intersect, opt_filtering, opt_threaded,
-            restrictedChase, nthreads, interRuleThreads, shuffleRules);
+            restrictedChase, nthreads, interRuleThreads, shuffleRules,
+            enableEqualityReasoning, eqPredicate);
     sn->run();
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     LOG(INFOL) << "Runtime materialization = " << sec.count() * 1000 << " milliseconds";

@@ -417,7 +417,9 @@ void WebInterface::processRequest(std::string req, std::string &resp) {
                             vm["restrictedChase"].as<bool>(),
                             multithreaded ? vm["nthreads"].as<int>() : -1,
                             multithreaded ? vm["interRuleThreads"].as<int>() : 0,
-                            !vm["shufflerules"].empty());
+                            !vm["shufflerules"].empty(),
+                            vm["fastequality"].as<bool>(),
+                            vm["equalitypredicate"].as<string>());
                     cvMatRunner.notify_one(); //start the computation
                     page = getPage("/newmat.html");
                 } else {

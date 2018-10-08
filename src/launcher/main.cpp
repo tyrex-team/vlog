@@ -204,6 +204,10 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "This parameter sets a threshold to estimate the reasoning cost of a pattern. This cost can be broadly associated to the cardinality of the pattern. It is used to choose either TopDown or Magic evalution. Default is 1000000 (1M).", false);
     query_options.add<string>("", "reasoningAlgo", "",
             "Determines the reasoning algo (only for <queryLiteral>). Possible values are \"qsqr\", \"magic\", \"auto\".", false);
+    query_options.add<bool>("", "fastequality", false,
+            "Enable the algorithm to speed up equality reasoning.", false);
+    query_options.add<string>("", "equalitypredicate", "",
+            "Indicate the name of the predicate which should be treated as the equality predicate.", false);
     query_options.add<string>("", "selectionStrategy", "",
             "Determines the selection strategy (only for <queryLiteral>, when \"auto\" is specified for the reasoningAlgorithm). Possible values are \"cardEst\", ... (to be extended) .", false);
     query_options.add<int64_t>("", "matThreshold", 10000000,
@@ -326,7 +330,7 @@ void writeRuleDependencyGraph(EDBLayer &db, string pathRules, string filegraph) 
     Program p(&db);
     p.readFromFile(pathRules, false);
     std::shared_ptr<SemiNaiver> sn = Reasoner::getSemiNaiver(db,
-            &p, true, true, false, false, 1, 1, false);
+            &p, true, true, false, false, 1, 1, false, false, "");
 
     std::vector<int> nodes;
     std::vector<std::pair<int, int>> edges;
@@ -417,14 +421,16 @@ void launchFullMat(int argc,
                 vm["restrictedChase"].as<bool>(),
                 nthreads,
                 interRuleThreads,
-                ! vm["shufflerules"].empty());
+                ! vm["shufflerules"].empty(),
+                vm["fastequality"].as<bool>(),
+                vm["equalitypredicate"].as<string>());
 
 #ifdef WEBINTERFACE
         //Start the web interface if requested
         std::unique_ptr<WebInterface> webint;
         if (vm["webinterface"].as<bool>()) {
             webint = std::unique_ptr<WebInterface>(
-                    new WebInterface(vm, sn, pathExec + "/webinterface",
+                    new WebInterface(vm, sn, pathExec + "/../webinterface",
                         flattenAllArgs(argc, argv),
                         vm["edb"].as<string>()));
             int port = vm["port"].as<int>();

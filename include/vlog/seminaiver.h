@@ -57,6 +57,9 @@ class SemiNaiver {
         std::vector<FCBlock> listDerivations;
         std::vector<StatsRule> statsRuleExecution;
 
+        bool enableEqualityReasoning;
+        std::string eqPredicate;
+        PredId_t eqPredicateID;
 
 #ifdef WEBINTERFACE
         long statsLastIteration;
@@ -137,18 +140,21 @@ class SemiNaiver {
                 bool fixpoint, unsigned long *timeout = NULL);
 
     public:
-		VLIBEXP SemiNaiver(std::vector<Rule> ruleset, EDBLayer &layer,
+        VLIBEXP SemiNaiver(std::vector<Rule> ruleset, EDBLayer &layer,
                 Program *program, bool opt_intersect,
                 bool opt_filtering, bool multithreaded,
-                bool restrictedChase, int nthreads, bool shuffleRules);
+                bool restrictedChase, int nthreads, bool shuffleRules,
+                bool enableEqualityReasoning, std::string eqPredicate);
 
         //disable restricted chase
-		VLIBEXP SemiNaiver(std::vector<Rule> ruleset, EDBLayer &layer,
+        VLIBEXP SemiNaiver(std::vector<Rule> ruleset, EDBLayer &layer,
                 Program *program, bool opt_intersect,
                 bool opt_filtering, bool multithreaded,
-                int nthreads, bool shuffleRules) :
+                int nthreads, bool shuffleRules,
+                bool enableEqualityReasoning, std::string eqPredicate) :
             SemiNaiver(ruleset, layer, program, opt_intersect, opt_filtering,
-                    multithreaded, false, nthreads, shuffleRules) {
+                    multithreaded, false, nthreads, shuffleRules,
+                    enableEqualityReasoning, eqPredicate) {
             }
 
         VLIBEXP void run(unsigned long *timeout = NULL) {
@@ -170,7 +176,7 @@ class SemiNaiver {
         VLIBEXP void storeOnFile(std::string path, const PredId_t pred, const bool decompress,
                 const int minLevel, const bool csv);
 
-		VLIBEXP void storeOnFiles(std::string path, const bool decompress,
+        VLIBEXP void storeOnFiles(std::string path, const bool decompress,
                 const int minLevel, const bool csv);
 
         FCIterator getTable(const Literal &literal, const size_t minIteration,

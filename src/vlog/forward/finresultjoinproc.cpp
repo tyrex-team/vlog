@@ -2,7 +2,8 @@
 #include <vlog/seminaiver.h>
 #include <climits>
 
-void SingleHeadFinalRuleProcessor::processResults(std::vector<int> &blockid, Term_t *p,
+void SingleHeadFinalRuleProcessor::processResults(std::vector<int> &blockid,
+        Term_t *p,
         std::vector<bool> &unique, std::mutex *m) {
 
     for (int j = 0; j < blockid.size(); j++) {
@@ -434,7 +435,6 @@ void SingleHeadFinalRuleProcessor::processResults(const int blockid, const bool 
 }
 
 #else
-
 void SingleHeadFinalRuleProcessor::processResults(const int blockid, const bool unique,
         std::mutex *m) {
     enlargeBuffers(blockid + 1);
@@ -907,5 +907,68 @@ void FinalRuleProcessor::consolidate(const bool isFinished) {
     }
     for(auto &t : atomTables) {
         t->consolidate(isFinished);
+    }
+}
+
+void EqualityFinalRuleProcessor::processResults(const int blockid, const bool unique,
+        std::mutex *m) {
+    assert(getRowSize() == 2);
+    if (row[0] < row[1]) {
+        SingleHeadFinalRuleProcessor::processResults(blockid, unique, m);
+    } else if (row[0] > row[1]) {
+        auto box = row[1];
+        row[1] = row[0];
+        row[0] = box;
+        SingleHeadFinalRuleProcessor::processResults(blockid, unique, m);
+    }
+}
+
+void EqualityFinalRuleProcessor::processResultsAtPos(const int blockid, const uint8_t pos,
+        const Term_t v, const bool unique) {
+    LOG(ERRORL) << "Not supported yet!";
+    throw 10;
+}
+
+void EqualityFinalRuleProcessor::addColumns(const int blockid,
+        std::vector<std::shared_ptr<Column>> &columns,
+        const bool unique, const bool sorted) {
+    //Go through the columns one-by-one and add the row
+    std::vector<std::unique_ptr<ColumnReader>> readers;
+    for(uint32_t i = 0; i < columns.size(); ++i) {
+        readers.push_back(columns[i]->getReader());
+    }
+    while (true) {
+        bool ok = true;
+        for(uint32_t i = 0; i < columns.size(); ++i) {
+            if (!readers[i]->hasNext()) {
+                ok = false;
+                break;
+            }
+        }
+        if (!ok) {
+            break;
+        }
+        for(uint32_t i = 0; i < columns.size(); ++i) {
+            row[i] = readers[i]->next();
+        }
+        processResults(blockid, false, NULL);
+    }
+}
+
+void EqualityFinalRuleProcessor::addColumn(const int blockid, const uint8_t pos,
+        std::shared_ptr<Column> column, const bool unique,
+        const bool sorted) {
+    LOG(ERRORL) << "Not supported yet!";
+    throw 10;
+}
+
+void EqualityFinalRuleProcessor::addColumns(const int blockid, FCInternalTableItr *itr,
+        const bool unique, const bool sorted,
+        const bool lastInsert) {
+    while (itr->hasNext()) {
+        for(uint32_t i = 0; i < getRowSize(); ++i) {
+            row[i] = itr->getCurrentValue(i);
+        }
+        processResults(blockid, false, NULL);
     }
 }

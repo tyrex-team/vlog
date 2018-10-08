@@ -77,15 +77,26 @@ string set_to_string(std::unordered_set<int> s) {
 
 SemiNaiver::SemiNaiver(std::vector<Rule> ruleset, EDBLayer &layer,
         Program *program, bool opt_intersect, bool opt_filtering,
-        bool multithreaded, bool restrictedChase, int nthreads, bool shuffle) :
+        bool multithreaded, bool restrictedChase, int nthreads, bool shuffle,
+        bool enableEqualityReasoning, std::string eqPredicate) :
     opt_intersect(opt_intersect),
     opt_filtering(opt_filtering),
     multithreaded(multithreaded),
     restrictedChase(restrictedChase),
     running(false),
+    enableEqualityReasoning(enableEqualityReasoning),
+    eqPredicate(eqPredicate),
+    eqPredicateID(0),
     layer(layer),
     program(program),
     nthreads(nthreads) {
+
+        if (enableEqualityReasoning) {
+            //Get the ID of the equality predicate
+            auto pred = program->getPredicate(eqPredicate);
+            eqPredicateID = pred.getId();
+            LOG(DEBUGL) << "The equality predicate " << eqPredicate << " has ID " << eqPredicateID;
+        }
 
         TableFilterer::setOptIntersect(opt_intersect);
         memset(predicatesTables, 0, sizeof(TupleTable*)*MAX_NPREDS);
@@ -398,7 +409,7 @@ bool SemiNaiver::executeUntilSaturation(
         }
 
         if (response) {
-            if (ruleset[currentRule].rule.isRecursive()) {
+            /*if (ruleset[currentRule].rule.isRecursive()) {
                 //Is the rule recursive? Go until saturation...
                 int recursiveIterations = 0;
                 do {
@@ -428,7 +439,7 @@ bool SemiNaiver::executeUntilSaturation(
                     LOG(DEBUGL) << "Rules " <<
                         ruleset[currentRule].rule.tostring(program, &layer) <<
                         "  required " << recursiveIterations << " to saturate";
-            }
+            }*/
             rulesWithoutDerivation = 0;
             nRulesOnePass++;
         } else {
@@ -1029,7 +1040,24 @@ bool SemiNaiver::executeRule(RuleExecutionDetails &ruleDetails,
                         plan.posFromSecond[optimalOrderIdx],
                         ! multithreaded ? -1 : nthreads);
             } else {
-                if (ruleDetails.rule.isExistential()) {
+                if (enableEqualityReasoning &&
+                        (heads[0].getPredicate().getId() == eqPredicateID)) {
+                    assert(heads.size() == 1);
+                    FCTable *table = getTable(heads[0].getPredicate().getId(),
+                            heads[0].getPredicate().getCardinality());
+                    joinOutput = new EqualityFinalRuleProcessor(
+                            plan.posFromFirst[optimalOrderIdx],
+                            plan.posFromSecond[optimalOrderIdx],
+                            listDerivations,
+                            table,
+                            heads[0],
+                            0,
+                            &ruleDetails,
+                            (uint8_t) orderExecution,
+                            iteration,
+                            finalResultContainer == NULL,
+                            !multithreaded ? -1 : nthreads);
+                } else if (ruleDetails.rule.isExistential()) {
                     joinOutput = new ExistentialRuleProcessor(
                             plan.posFromFirst[optimalOrderIdx],
                             plan.posFromSecond[optimalOrderIdx],
